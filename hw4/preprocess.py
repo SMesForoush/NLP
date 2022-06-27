@@ -104,28 +104,32 @@ def cleaning(text):
 def token_title(text):
     return tokenizer.tokenize(text)
 
+def preprocess_df(f, balance=True):
+        # read from json
+    p = f'./{f}.json'
+    data = read_data(p)
+    data = data[f]
+    df = pd.DataFrame(data)
+    # remove empty news
+    df = df[df['annotations'].map(lambda d: len(d)) > 0]
+    df = df[df['text'] != ''].reset_index(drop=True)
+    # get probs of title type
+    df['normal_prob'] = df['annotations'].apply(label_prob)
+    df['interesting_prob'] = 1 - df['normal_prob']
+    # balancing data for training
+    if balance:
+        df = balance_train(df)
+    # cleaning
+    df['clean'] = df['text'].apply(cleaning)
+    # tokenizing
+    df['tokens'] = df['clean'].apply(token_title)
+    return df
+
 
 def preprocess():
     files = ['train', 'eval', 'test']
     for f in files:
-        # read from json
-        p = f'./{f}.json'
-        data = read_data(p)
-        data = data[f]
-        df = pd.DataFrame(data)
-        # remove empty news
-        df = df[df['annotations'].map(lambda d: len(d)) > 0]
-        df = df[df['text'] != ''].reset_index(drop=True)
-        # get probs of title type
-        df['normal_prob'] = df['annotations'].apply(label_prob)
-        df['interesting_prob'] = 1 - df['normal_prob']
-        # balancing data for training
-        if f == 'train':
-            df = balance_train(df)
-        # cleaning
-        df['clean'] = df['text'].apply(cleaning)
-        # tokenizing
-        df['tokens'] = df['clean'].apply(token_title)
+        df = preprocess_df(f, f=="train")
         # save csv
         df.to_csv(f'{f}_clean.csv', encoding='utf-8-sig')
         print(f'{f} is done')
