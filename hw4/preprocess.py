@@ -130,5 +130,6 @@ def preprocess():
         df.to_csv(f'{f}_clean.csv', encoding='utf-8-sig')
         print(f'{f} is done')
 
-
-preprocess()
+     
+if __name__ == "__main__":
+    preprocess()
